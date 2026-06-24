@@ -12,8 +12,13 @@ import {
   ArrowRight,
   Check
 } from 'lucide-react';
+import { useSeo } from '../utils/useSeo';
 
 export function Landing() {
+  useSeo(
+    'MockAPI — Instant Mock REST APIs for Frontend Development',
+    'Create and manage mock REST API endpoints in seconds. Custom JSON responses, status codes, delays, and auth — unblock your frontend while the backend is being built.',
+  );
   const features = [
     {
       icon: Zap,

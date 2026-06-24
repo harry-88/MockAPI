@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getEndpoint, Endpoint, getMockApiUrl } from '../../utils/api';
-import { publicAnonKey } from '../../utils/supabase/info';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
@@ -72,8 +71,7 @@ export function EndpointDetail() {
 fetch('${apiUrl}', {
   method: '${endpoint.method}',
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ${publicAnonKey}'${authHeader}
+    'Content-Type': 'application/json'${authHeader}
   }${endpoint.method !== 'GET' && endpoint.method !== 'DELETE' ? `,\n  body: JSON.stringify({\n    // Your request body\n  })` : ''}
 })
   .then(response => response.json())
@@ -82,16 +80,14 @@ fetch('${apiUrl}', {
 
     curl: `# cURL
 curl -X ${endpoint.method} '${apiUrl}' \\
-  -H 'Content-Type: application/json' \\
-  -H 'Authorization: Bearer ${publicAnonKey}'${curlAuthHeader}${endpoint.method !== 'GET' && endpoint.method !== 'DELETE' ? ` \\\n  -d '{"key":"value"}'` : ''}`,
+  -H 'Content-Type: application/json'${curlAuthHeader}${endpoint.method !== 'GET' && endpoint.method !== 'DELETE' ? ` \\\n  -d '{"key":"value"}'` : ''}`,
 
     python: `# Python (requests)
 import requests
 
 url = '${apiUrl}'
 headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ${publicAnonKey}'${pythonAuthHeader}
+    'Content-Type': 'application/json'${pythonAuthHeader}
 }${endpoint.method !== 'GET' && endpoint.method !== 'DELETE' ? `\ndata = {\n    # Your request body\n}` : ''}
 
 response = requests.${endpoint.method.toLowerCase()}(url, headers=headers${endpoint.method !== 'GET' && endpoint.method !== 'DELETE' ? ', json=data' : ''})
@@ -146,34 +142,20 @@ print(response.json())`,
               </div>
             </div>
 
-            <div>
-              <p className="text-sm mb-2">Public Anon Key (required for all requests):</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 px-4 py-3 bg-muted rounded-lg font-mono text-sm overflow-x-auto  border">
-                  {publicAnonKey}
-                </code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => copyToClipboard(publicAnonKey, 'API Key')}
-                  className="flex-shrink-0"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
           </div>
-          
+
           <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg space-y-2">
             <div className="flex items-start gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
               <div className="space-y-2">
                 <p className="text-sm ">
-                  <strong>Safe to Share:</strong> This public anon key is designed to be shared freely. Include it in your frontend code, documentation, and share it with your team.
+                  <strong>Public endpoint:</strong> This URL is open and needs no API key. Call it directly from your frontend, scripts, or tests.
                 </p>
-                <p className="text-xs text-muted-foreground break-all">
-                  All requests must include this in the Authorization header: <code className="px-1.5 py-0.5 bg-muted rounded">Authorization: Bearer {publicAnonKey}</code>
-                </p>
+                {endpoint.requireAuth && (
+                  <p className="text-xs text-muted-foreground break-all">
+                    This endpoint requires an <code className="px-1.5 py-0.5 bg-muted rounded">X-Auth-Token</code> header with your configured token.
+                  </p>
+                )}
               </div>
             </div>
           </div>

@@ -6,8 +6,13 @@ import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Mail, MessageSquare, Send, Github, Twitter } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { useSeo } from '../utils/useSeo';
 
 export function Contact() {
+  useSeo(
+    'Contact — MockAPI',
+    'Get in touch with the MockAPI team for support, questions, or feedback.',
+  );
   const [formData, setFormData] = useState({
     name: '',
     email: '',

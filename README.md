@@ -16,8 +16,10 @@ A powerful Mock API Platform where developers can easily create and manage API e
 
 ### Prerequisites
 
-- Node.js 18+ 
-- A Supabase account (free tier works great!)
+- Node.js 18+
+- A Firebase project on the **Blaze** plan (Cloud Functions require it; the free
+  monthly allowance covers small projects)
+- Firebase CLI: `npm install -g firebase-tools`
 
 ### Setup Instructions
 
@@ -27,56 +29,38 @@ A powerful Mock API Platform where developers can easily create and manage API e
    cd mock-api-platform
    ```
 
-2. **Set up Supabase Project**
+2. **Create a Firebase project**
 
-   - Go to [supabase.com](https://supabase.com) and create a new project
-   - Once created, go to **Project Settings** → **API**
-   - Copy the following values:
-     - **Project URL** (e.g., `https://xxxxx.supabase.co`)
-     - **Anon/Public Key** (starts with `eyJhb...`)
-     - **Service Role Key** (starts with `eyJhb...`)
+   - Go to [console.firebase.google.com](https://console.firebase.google.com) and create a project
+   - Upgrade it to the **Blaze** plan (⚙️ → Usage and billing → Modify plan)
+   - Enable **Firestore** (Build → Firestore Database → Create database)
+   - Enable **Authentication** providers you want: Email/Password, Google, GitHub
+     (Build → Authentication → Sign-in method)
+   - Register a **Web app** (⚙️ → Project settings → Your apps) and copy its config
 
-3. **Configure Environment Variables**
+3. **Configure environment variables**
 
-   Create a `.env` file or set the environment variables in your Supabase project:
-
-   ```env
-   SUPABASE_URL=your-project-url
-   SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   ```
-
-4. **Deploy the Edge Function**
-
-   Install Supabase CLI:
    ```bash
-   npm install -g supabase
+   cp .env.example .env
    ```
+   Fill `.env` with your Firebase web config values. Leave
+   `VITE_FUNCTIONS_BASE_URL` for now — you'll get it after the first deploy.
 
-   Login to Supabase:
+4. **Deploy the backend (Cloud Function + Firestore rules)**
+
    ```bash
-   supabase login
+   firebase login
+   # set your project id in .firebaserc, or:
+   firebase use --add
+   cd functions && npm install && cd ..
+   firebase deploy --only functions,firestore:rules
    ```
 
-   Link your project:
-   ```bash
-   supabase link --project-ref your-project-ref
-   ```
+   After deploy, copy the printed function URL (e.g.
+   `https://us-central1-<project>.cloudfunctions.net/api`) into
+   `VITE_FUNCTIONS_BASE_URL` in `.env`.
 
-   Deploy the function:
-   ```bash
-   supabase functions deploy make-server-ade39ab0
-   ```
-
-5. **Update the project info file**
-
-   Edit `/utils/supabase/info.tsx` with your Supabase credentials:
-   ```typescript
-   export const projectId = 'your-project-id';
-   export const publicAnonKey = 'your-anon-key';
-   ```
-
-6. **Install and run**
+5. **Install and run the frontend**
    ```bash
    npm install
    npm run dev
@@ -84,41 +68,21 @@ A powerful Mock API Platform where developers can easily create and manage API e
 
 ## Setting Up Social Authentication (Optional)
 
-### GitHub Authentication
+Both run through Firebase Authentication (Build → Authentication → Sign-in method).
+Firebase's OAuth callback URL is `https://<your-project>.firebaseapp.com/__/auth/handler`.
 
-1. Go to [GitHub Settings](https://github.com/settings/developers) → **Developer settings** → **OAuth Apps**
-2. Click **New OAuth App**
-3. Fill in:
-   - **Application name**: Mock API Platform
-   - **Homepage URL**: `http://localhost:5173` (or your production URL)
-   - **Authorization callback URL**: `https://your-project-ref.supabase.co/auth/v1/callback`
-4. Copy the **Client ID** and **Client Secret**
-5. In Supabase Dashboard:
-   - Go to **Authentication** → **Providers**
-   - Enable **GitHub**
-   - Paste your Client ID and Client Secret
-   - Save
+### Google
 
-### Google Authentication
+1. In Firebase Console → **Authentication** → **Sign-in method**, enable **Google**. That's usually all that's needed.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Go to **APIs & Services** → **Credentials**
-4. Click **Create Credentials** → **OAuth 2.0 Client ID**
-5. Configure:
-   - **Application type**: Web application
-   - **Authorized JavaScript origins**: `http://localhost:5173`, `https://your-domain.com`
-   - **Authorized redirect URIs**: `https://your-project-ref.supabase.co/auth/v1/callback`
-6. Copy the **Client ID** and **Client Secret**
-7. In Supabase Dashboard:
-   - Go to **Authentication** → **Providers**
-   - Enable **Google**
-   - Paste your Client ID and Client Secret
-   - Save
+### GitHub
 
-For detailed instructions, visit:
-- [GitHub OAuth](https://supabase.com/docs/guides/auth/social-login/auth-github)
-- [Google OAuth](https://supabase.com/docs/guides/auth/social-login/auth-google)
+1. Create an OAuth App at [GitHub → Developer settings → OAuth Apps](https://github.com/settings/developers):
+   - **Authorization callback URL**: `https://<your-project>.firebaseapp.com/__/auth/handler`
+2. In Firebase Console → **Authentication** → **Sign-in method**, enable **GitHub** and paste the Client ID and Client Secret.
+
+Add your dev/prod domains under Authentication → Settings → **Authorized domains**.
+See the [Firebase Auth docs](https://firebase.google.com/docs/auth/web/start) for details.
 
 ## Usage
 
@@ -139,30 +103,21 @@ For detailed instructions, visit:
 
 ### Calling Your Mock API
 
-All requests require the **public anon key** in the Authorization header:
+Mock endpoints are public — no API key needed:
 
 ```javascript
-fetch('https://your-project.supabase.co/functions/v1/make-server-ade39ab0/users', {
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer your-public-anon-key'
-  }
-})
+fetch('https://us-central1-your-project.cloudfunctions.net/api/users')
   .then(res => res.json())
   .then(data => console.log(data));
 ```
 
-**Note**: The public anon key is safe to share and include in frontend code.
-
 ### With Authentication Enabled
 
-If you enabled authentication on your endpoint:
+If you enabled authentication on your endpoint, send the `X-Auth-Token` header:
 
 ```javascript
-fetch('https://your-project.supabase.co/functions/v1/make-server-ade39ab0/protected', {
+fetch('https://us-central1-your-project.cloudfunctions.net/api/protected', {
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer your-public-anon-key',
     'X-Auth-Token': 'your-endpoint-auth-token'
   }
 })
@@ -173,18 +128,18 @@ fetch('https://your-project.supabase.co/functions/v1/make-server-ade39ab0/protec
 ## Architecture
 
 - **Frontend**: React + TypeScript + Tailwind CSS
-- **Backend**: Supabase Edge Functions (Deno + Hono)
-- **Database**: Supabase Key-Value Store
-- **Authentication**: Supabase Auth (Email, GitHub, Google)
-- **Hosting**: Supabase Edge Functions
+- **Backend**: Firebase Cloud Functions (Node + Express)
+- **Database**: Cloud Firestore
+- **Authentication**: Firebase Auth (Email, GitHub, Google)
 
 ## Key Files
 
-- `/App.tsx` - Main application component
-- `/supabase/functions/server/index.tsx` - Edge function server
-- `/utils/api.tsx` - API client functions
-- `/pages/dashboard/` - Dashboard pages
-- `/components/` - Reusable UI components
+- `/src/App.tsx` - Main application component
+- `/functions/index.js` - Cloud Function (management API + mock serving)
+- `/src/utils/firebase.ts` - Firebase client init
+- `/src/utils/api.tsx` - API client functions
+- `/src/pages/dashboard/` - Dashboard pages
+- `/src/components/` - Reusable UI components
 
 ## Contributing
 

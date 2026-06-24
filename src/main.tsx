@@ -1,7 +1,13 @@
+import { createRoot, hydrateRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
 
-  import { createRoot } from "react-dom/client";
-  import App from "./App.tsx";
-  import "./index.css";
+const root = document.getElementById("root")!;
 
-  createRoot(document.getElementById("root")!).render(<App />);
-  
+// Prerendered routes already have markup in #root → hydrate it.
+// Plain SPA loads (empty #root) → mount fresh.
+if (root.hasChildNodes()) {
+  hydrateRoot(root, <App />);
+} else {
+  createRoot(root).render(<App />);
+}

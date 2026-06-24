@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Separator } from '../components/ui/separator';
-import { Github } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
-import { signIn, signUp, signInWithGoogle, signInWithGithub } from '../utils/auth';
+import { signIn, signUp, signInWithGoogle } from '../utils/auth';
 import { useAuth } from '../contexts/AuthContext';
 
 export function SignIn() {
@@ -48,19 +47,11 @@ export function SignIn() {
 
   const handleGoogleSignIn = async () => {
     try {
-      await signInWithGoogle();
-      // The OAuth flow will redirect the user
+      const result = await signInWithGoogle();
+      setAuth(result.user, result.accessToken);
+      navigate('/dashboard');
     } catch (error: any) {
       toast.error(error.message || 'Google sign-in failed');
-    }
-  };
-
-  const handleGithubSignIn = async () => {
-    try {
-      await signInWithGithub();
-      // The OAuth flow will redirect the user
-    } catch (error: any) {
-      toast.error(error.message || 'GitHub sign-in failed');
     }
   };
 
@@ -105,16 +96,6 @@ export function SignIn() {
                 />
               </svg>
               Continue with Google
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              className="w-full gap-2"
-              onClick={handleGithubSignIn}
-              type="button"
-            >
-              <Github className="h-5 w-5" />
-              Continue with GitHub
             </Button>
           </div>
 

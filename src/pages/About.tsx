@@ -1,7 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Target, Heart, Rocket } from 'lucide-react';
+import { useSeo } from '../utils/useSeo';
 
 export function About() {
+  useSeo(
+    'About — MockAPI',
+    'Why we built MockAPI: a fast, simple platform to mock REST API endpoints and unblock frontend teams.',
+  );
   return (
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">

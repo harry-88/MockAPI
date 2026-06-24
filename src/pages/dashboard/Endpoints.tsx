@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { getEndpoints, deleteEndpoint as deleteEndpointAPI, Endpoint } from '../../utils/api';
+import { getEndpoints, deleteEndpoint as deleteEndpointAPI, getMockApiUrl, Endpoint } from '../../utils/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -54,8 +54,7 @@ export function Endpoints() {
   );
 
   const copyUrl = (endpoint: Endpoint) => {
-    const url = `https://${window.location.hostname.split('.')[0]}.supabase.co/functions/v1/make-server-ade39ab0${endpoint.path}`;
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(getMockApiUrl(endpoint));
     toast.success('API URL copied to clipboard');
   };
 

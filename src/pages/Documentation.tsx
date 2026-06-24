@@ -14,11 +14,15 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { Badge } from "../components/ui/badge";
-import { Code2, Rocket, Shield, Zap, Copy, CheckCircle2 } from "lucide-react";
+import { Code2, Rocket, Shield, Zap, Copy } from "lucide-react";
 import { toast } from "sonner@2.0.3";
-import { publicAnonKey } from "../utils/supabase/info";
+import { useSeo } from "../utils/useSeo";
 
 export function Documentation() {
+  useSeo(
+    'Documentation — MockAPI',
+    'Learn how to create mock API endpoints and call them from JavaScript, cURL, Python, and React.',
+  );
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     toast.success("Code copied to clipboard");
@@ -211,52 +215,6 @@ export function Documentation() {
         <div className="max-w-6xl mx-auto">
           <h2 className="mb-8 text-center">Using Your Mock Endpoints</h2>
 
-          {/* API Key Notice */}
-          {/* <Card className="mb-8 border-green-500/50 bg-green-500/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                Public Anon Key - Safe to Share
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p>
-                All requests to your mock API endpoints must include the{" "}
-                <strong>Authorization header with your public anon key</strong>.
-                This key is safe to share publicly and should be included in
-                your frontend code.
-              </p>
-              <div className="space-y-2">
-                <p className="text-sm">Your Public Anon Key:</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 px-4 py-3 bg-muted rounded-lg font-mono text-sm overflow-x-auto border">
-                    {publicAnonKey}
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyCode(publicAnonKey)}
-                    className="flex-shrink-0"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <div className="p-4 bg-muted rounded-lg">
-                <p className="text-sm mb-2">
-                  Include this header in every request:
-                </p>
-                <code className="text-sm">
-                  Authorization: Bearer {publicAnonKey}
-                </code>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                ✓ Safe to commit to Git &nbsp;&nbsp; ✓ Safe to share with your
-                team &nbsp;&nbsp; ✓ Safe to use in frontend code
-              </p>
-            </CardContent>
-          </Card> */}
-
           <Tabs defaultValue="javascript" className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-8">
               <TabsTrigger value="javascript">JavaScript</TabsTrigger>
@@ -278,8 +236,7 @@ export function Documentation() {
 fetch('YOUR_MOCK_API_URL', {
   method: 'GET',
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ${publicAnonKey}'
+    'Content-Type': 'application/json'
   }
 })
   .then(response => response.json())
@@ -290,8 +247,7 @@ fetch('YOUR_MOCK_API_URL', {
 fetch('YOUR_MOCK_API_URL', {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer YOUR_PUBLIC_ANON_KEY'
+    'Content-Type': 'application/json'
   },
   body: JSON.stringify({
     name: 'John Doe',
@@ -337,13 +293,11 @@ fetch('YOUR_MOCK_API_URL', {
                     <pre className="p-4 bg-muted rounded-lg overflow-x-auto">
                       <code className="text-sm font-mono">{`# Basic GET request
 curl -X GET 'YOUR_MOCK_API_URL' \\
-  -H 'Content-Type: application/json' \\
-  -H 'Authorization: Bearer ${publicAnonKey}'
+  -H 'Content-Type: application/json'
 
 # POST request with data
 curl -X POST 'YOUR_MOCK_API_URL' \\
   -H 'Content-Type: application/json' \\
-  -H 'Authorization: Bearer ${publicAnonKey}' \\
   -d '{"name": "John Doe", "email": "john@example.com"}'`}</code>
                     </pre>
                     <Button
@@ -352,8 +306,7 @@ curl -X POST 'YOUR_MOCK_API_URL' \\
                       className="absolute top-2 right-2"
                       onClick={() =>
                         copyCode(`curl -X GET 'YOUR_MOCK_API_URL' \\
-  -H 'Content-Type: application/json' \\
-  -H 'Authorization: Bearer ${publicAnonKey}'`)
+  -H 'Content-Type: application/json'`)
                       }
                     >
                       <Copy className="h-4 w-4" />
@@ -377,8 +330,7 @@ curl -X POST 'YOUR_MOCK_API_URL' \\
 # Basic GET request
 url = 'YOUR_MOCK_API_URL'
 headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ${publicAnonKey}'
+    'Content-Type': 'application/json'
 }
 response = requests.get(url, headers=headers)
 print(response.json())
@@ -400,8 +352,7 @@ print(response.json())`}</code>
 
 url = 'YOUR_MOCK_API_URL'
 headers = {
-    'Content-Type': 'application/json',
-    'Authorization': 'Bearer ${publicAnonKey}'
+    'Content-Type': 'application/json'
 }
 response = requests.get(url, headers=headers)
 print(response.json())`)
@@ -427,9 +378,6 @@ print(response.json())`)
                     <pre className="p-4 bg-muted rounded-lg overflow-x-auto">
                       <code className="text-sm font-mono">{`import { useState, useEffect } from 'react';
 
-// Your public anon key (safe to include in frontend code)
-const PUBLIC_ANON_KEY = '${publicAnonKey}';
-
 function useApi(url) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -437,10 +385,7 @@ function useApi(url) {
 
   useEffect(() => {
     fetch(url, {
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': \`Bearer \${PUBLIC_ANON_KEY}\`
-      }
+      headers: { 'Content-Type': 'application/json' }
     })
       .then(res => res.json())
       .then(data => {

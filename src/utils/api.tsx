@@ -1,6 +1,6 @@
-import { projectId, publicAnonKey } from './supabase/info';
+import { functionsBaseUrl } from './firebase';
 
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-ade39ab0`;
+const API_BASE = functionsBaseUrl;
 
 export interface Endpoint {
   id: string;
@@ -38,8 +38,6 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}, accessToken
 
   if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
-  } else {
-    headers['Authorization'] = `Bearer ${publicAnonKey}`;
   }
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -114,5 +112,5 @@ export async function getAnalytics(accessToken: string): Promise<Analytics> {
 }
 
 export function getMockApiUrl(endpoint: Endpoint): string {
-  return `https://${projectId}.supabase.co/functions/v1/make-server-ade39ab0${endpoint.path}`;
+  return `${API_BASE}${endpoint.path}`;
 }

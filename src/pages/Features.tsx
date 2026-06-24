@@ -13,8 +13,13 @@ import {
   Lock,
   Webhook
 } from 'lucide-react';
+import { useSeo } from '../utils/useSeo';
 
 export function Features() {
+  useSeo(
+    'Features — MockAPI',
+    'Path-based routing, custom JSON responses, simulated delays, optional auth, and real-time analytics. Everything you need to mock REST APIs.',
+  );
   const featureCategories = [
     {
       category: 'Core Features',
