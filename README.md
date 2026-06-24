@@ -56,7 +56,7 @@ A powerful Mock API Platform where developers can easily create and manage API e
    firebase deploy --only functions,firestore:rules
    ```
 
-   After deploy, copy the printed function URL (e.g.
+   After deploy, copy the printed function URL (e.g
    `https://us-central1-<project>.cloudfunctions.net/api`) into
    `VITE_FUNCTIONS_BASE_URL` in `.env`.
 
