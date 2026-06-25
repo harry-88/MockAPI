@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import sirv from 'sirv';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dist = join(__dirname, '..', 'dist');
@@ -24,11 +24,34 @@ const server = createServer((req, res) =>
 );
 await new Promise((resolve) => server.listen(PORT, resolve));
 
-const browser = await puppeteer.launch({
-  headless: true,
-  channel: 'chrome', // use the system-installed Chrome (avoids bundled-binary arch issues)
-  args: ['--no-sandbox', '--disable-setuid-sandbox'],
-});
+// Cloud builds (Vercel/CI) have no system Chrome → use @sparticuz/chromium.
+// Locally use the installed Google Chrome. If neither launches, skip prerender
+// and ship the plain SPA rather than failing the whole build.
+async function launch() {
+  if (process.env.VERCEL || process.env.CI) {
+    const chromium = (await import('@sparticuz/chromium')).default;
+    return puppeteer.launch({
+      headless: true,
+      executablePath: await chromium.executablePath(),
+      args: chromium.args,
+    });
+  }
+  return puppeteer.launch({
+    headless: true,
+    channel: 'chrome',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  });
+}
+
+let browser;
+try {
+  browser = await launch();
+} catch (err) {
+  console.warn('\n⚠  Prerender skipped (no usable Chrome/Chromium):', err.message);
+  console.warn('   Shipping client-rendered SPA. SEO meta in index.html still applies.\n');
+  server.close();
+  process.exit(0);
+}
 
 // Snapshot every route first (keeping the served shell pristine), then write.
 const snapshots = [];

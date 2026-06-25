@@ -50,9 +50,10 @@
           "vaul": "^1.1.2"
       },
       "devDependencies": {
+          "@sparticuz/chromium": "^131.0.0",
           "@types/node": "^20.10.0",
           "@vitejs/plugin-react-swc": "^3.10.2",
-          "puppeteer": "^23.0.0",
+          "puppeteer-core": "^23.0.0",
           "sirv": "^2.0.4",
           "vite": "6.3.5"
       },
