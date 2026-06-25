@@ -32,6 +32,7 @@ import {
   ExternalLink,
   CheckCircle2,
   ChevronRight,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import { FolderTree, buildTree } from '../../components/FolderTree';
@@ -309,7 +310,11 @@ function DetailPane({
   onCopy: () => void;
   onDelete: () => void;
 }) {
-  const apiUrl = getMockApiUrl(endpoint);
+  const params = (endpoint.queryParams || []).filter((p) => p.key.trim());
+  const qs = params.length
+    ? '?' + params.map((p) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`).join('&')
+    : '';
+  const apiUrl = getMockApiUrl(endpoint) + qs;
   // Breadcrumb: collection > folder segments > endpoint name.
   const folders = endpoint.path.split('/').map((s) => s.trim()).filter(Boolean).slice(0, -1);
   const crumbs = [collectionName || 'Uncategorized', ...folders, endpoint.name];
@@ -386,6 +391,34 @@ function DetailPane({
           ))}
         </div>
 
+        {/* Request: params + body (only when documented) */}
+        {(params.length > 0 || endpoint.requestBody) && (
+          <div className="rounded-xl border border-border bg-card p-5 shadow-sm space-y-4">
+            <p className="text-sm font-medium">Request</p>
+            {params.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Query Params</p>
+                <div className="rounded-lg border border-border overflow-hidden">
+                  {params.map((p, i) => (
+                    <div key={i} className="flex text-sm font-mono border-b border-border last:border-0">
+                      <span className="flex-1 px-3 py-2 bg-muted/50 border-r border-border">{p.key}</span>
+                      <span className="flex-1 px-3 py-2">{p.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {endpoint.requestBody && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-2">Request Body</p>
+                <pre className="p-4 bg-muted/50 rounded-lg overflow-x-auto max-h-72 border border-border">
+                  <code className="text-sm font-mono">{endpoint.requestBody}</code>
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Response */}
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <p className="text-sm font-medium mb-3">Response Body</p>
@@ -399,6 +432,42 @@ function DetailPane({
 }
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+
+// Editable key/value rows (Postman-style), with a trailing blank row to add more.
+function KeyValueEditor({
+  rows,
+  onChange,
+}: {
+  rows: { key: string; value: string }[];
+  onChange: (rows: { key: string; value: string }[]) => void;
+}) {
+  // Show existing rows plus one empty row; typing in the empty row appends it.
+  const display = [...rows, { key: '', value: '' }];
+  const edit = (i: number, field: 'key' | 'value', val: string) => {
+    const next = display.map((r, idx) => (idx === i ? { ...r, [field]: val } : r));
+    onChange(next.filter((r) => r.key || r.value));
+  };
+  return (
+    <div className="space-y-2">
+      {display.map((r, i) => (
+        <div key={i} className="flex gap-2">
+          <Input placeholder="key" value={r.key} onChange={(e) => edit(i, 'key', e.target.value)} className="font-mono text-sm" />
+          <Input placeholder="value" value={r.value} onChange={(e) => edit(i, 'value', e.target.value)} className="font-mono text-sm" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
+            disabled={i === display.length - 1}
+            onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // Inline "new request" builder shown in the right pane, Postman-style.
 function CreatePane({
@@ -426,8 +495,12 @@ function CreatePane({
     requireAuth: false,
     authToken: '',
     collectionId: ctx.collectionId,
+    queryParams: [] as { key: string; value: string }[],
+    requestBody: '',
   });
   const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
+
+  const hasBody = form.method !== 'GET'; // GET carries no request body
 
   // Collection is already chosen when you add from inside one — lock it, don't re-ask.
   const lockedCol = ctx.collectionId ? collections.find((c) => c.id === ctx.collectionId) : null;
@@ -458,6 +531,8 @@ function CreatePane({
         requireAuth: form.requireAuth,
         authToken: form.requireAuth ? form.authToken : undefined,
         collectionId: form.collectionId,
+        queryParams: form.queryParams.filter((p) => p.key.trim()),
+        requestBody: hasBody ? form.requestBody : '',
       });
       toast.success('Endpoint created');
       onCreated(ep);
@@ -553,6 +628,34 @@ function CreatePane({
               <Input id="c-desc" placeholder="Optional" value={form.description} onChange={(e) => set('description', e.target.value)} />
             </div>
           </div>
+        </div>
+
+        {/* Request: query params + body */}
+        <div className="rounded-xl border border-border bg-card p-6 space-y-5 shadow-sm">
+          <div className="space-y-2">
+            <Label>Query Params</Label>
+            <KeyValueEditor rows={form.queryParams} onChange={(rows) => set('queryParams', rows)} />
+            <p className="text-xs text-muted-foreground">
+              Documents the query string callers send (e.g. <code className="px-1 py-0.5 bg-muted rounded">?minorversion=4</code>).
+            </p>
+          </div>
+
+          {hasBody && (
+            <div className="space-y-2">
+              <Label htmlFor="c-reqbody">Request Body</Label>
+              <Textarea
+                id="c-reqbody"
+                rows={6}
+                className="font-mono text-sm bg-muted/50"
+                placeholder='{\n  "name": "Acme"\n}'
+                value={form.requestBody}
+                onChange={(e) => set('requestBody', e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Example body a {form.method} caller should send. Documentation only — the mock still returns the response below.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Response */}

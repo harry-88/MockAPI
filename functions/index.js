@@ -43,7 +43,7 @@ app.post('/endpoints', ah(async (req, res) => {
   if (!user) return res.status(401).json({ error });
 
   const { name, method, path, responseData, statusCode, headers, description,
-          delay, requireAuth, authToken, collectionId } = req.body;
+          delay, requireAuth, authToken, collectionId, queryParams, requestBody } = req.body;
   if (!name || !method || !path) {
     return res.status(400).json({ error: 'Name, method, and path are required' });
   }
@@ -64,6 +64,8 @@ app.post('/endpoints', ah(async (req, res) => {
     headers: headers || {}, description: description || '',
     delay: delay || 0, requireAuth: requireAuth || false, authToken: authToken || '',
     collectionId: collectionId || '',
+    queryParams: Array.isArray(queryParams) ? queryParams : [],
+    requestBody: requestBody || '',
     createdAt: now, updatedAt: now, callCount: 0,
   };
   await db.collection('endpoints').doc(id).set(endpoint);

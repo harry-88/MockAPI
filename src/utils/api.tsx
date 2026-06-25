@@ -16,6 +16,8 @@ export interface Endpoint {
   requireAuth?: boolean; // Whether authentication is required
   authToken?: string; // Expected auth token if requireAuth is true
   collectionId?: string; // Empty string means uncategorized
+  queryParams?: { key: string; value: string }[]; // Documented query params (Postman "Params")
+  requestBody?: string; // Documented example request body (Postman "Body"), for non-GET methods
   createdAt: string;
   updatedAt: string;
   callCount: number;
