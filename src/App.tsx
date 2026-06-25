@@ -12,6 +12,7 @@ import { About } from './pages/About';
 import { Documentation } from './pages/Documentation';
 import { Contact } from './pages/Contact';
 import { SignIn } from './pages/SignIn';
+import { SharedCollection } from './pages/SharedCollection';
 
 // Dashboard Pages
 import { DashboardLayout } from './pages/dashboard/DashboardLayout';
@@ -37,6 +38,7 @@ export default function App() {
               <Route path="/docs" element={<Documentation />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/signin" element={<SignIn />} />
+              <Route path="/share/:shareId" element={<SharedCollection />} />
 
               {/* Dashboard Routes */}
               <Route path="/dashboard" element={<DashboardLayout />}>

@@ -2,6 +2,7 @@ const { onRequest } = require('firebase-functions/v2/https');
 const admin = require('firebase-admin');
 const express = require('express');
 const cors = require('cors');
+const { randomUUID } = require('crypto');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -42,7 +43,7 @@ app.post('/endpoints', ah(async (req, res) => {
   if (!user) return res.status(401).json({ error });
 
   const { name, method, path, responseData, statusCode, headers, description,
-          delay, requireAuth, authToken } = req.body;
+          delay, requireAuth, authToken, collectionId } = req.body;
   if (!name || !method || !path) {
     return res.status(400).json({ error: 'Name, method, and path are required' });
   }
@@ -62,6 +63,7 @@ app.post('/endpoints', ah(async (req, res) => {
     responseData: responseData || {}, statusCode: statusCode || 200,
     headers: headers || {}, description: description || '',
     delay: delay || 0, requireAuth: requireAuth || false, authToken: authToken || '',
+    collectionId: collectionId || '',
     createdAt: now, updatedAt: now, callCount: 0,
   };
   await db.collection('endpoints').doc(id).set(endpoint);
@@ -172,6 +174,84 @@ app.get('/analytics', ah(async (req, res) => {
       successRate, dailyStats, methodDistribution,
     },
   });
+}));
+
+// --- Collections: group a user's endpoints into shareable projects. ---
+
+// List the signed-in user's collections.
+app.get('/collections', ah(async (req, res) => {
+  const { user, error } = await verifyUser(req);
+  if (!user) return res.status(401).json({ error });
+  const snap = await db.collection('collections').where('userId', '==', user.uid).get();
+  res.json({ collections: snap.docs.map((d) => d.data()) });
+}));
+
+// Create a collection. shareId is unguessable so the link itself is the access token.
+app.post('/collections', ah(async (req, res) => {
+  const { user, error } = await verifyUser(req);
+  if (!user) return res.status(401).json({ error });
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+
+  const id = db.collection('collections').doc().id;
+  const collection = {
+    id, userId: user.uid, name,
+    isPublic: false, shareId: randomUUID(),
+    createdAt: new Date().toISOString(),
+  };
+  await db.collection('collections').doc(id).set(collection);
+  res.json({ collection });
+}));
+
+// Update a collection — rename or toggle public sharing (owner only).
+app.put('/collections/:id', ah(async (req, res) => {
+  const { user, error } = await verifyUser(req);
+  if (!user) return res.status(401).json({ error });
+  const ref = db.collection('collections').doc(req.params.id);
+  const doc = await ref.get();
+  if (!doc.exists) return res.status(404).json({ error: 'Collection not found' });
+  if (doc.data().userId !== user.uid) return res.status(403).json({ error: 'Unauthorized' });
+
+  const patch = {};
+  if (typeof req.body.name === 'string') patch.name = req.body.name;
+  if (typeof req.body.isPublic === 'boolean') patch.isPublic = req.body.isPublic;
+  await ref.update(patch);
+  res.json({ collection: { ...doc.data(), ...patch } });
+}));
+
+// Delete a collection. Its endpoints survive but become uncategorized.
+app.delete('/collections/:id', ah(async (req, res) => {
+  const { user, error } = await verifyUser(req);
+  if (!user) return res.status(401).json({ error });
+  const ref = db.collection('collections').doc(req.params.id);
+  const doc = await ref.get();
+  if (!doc.exists) return res.status(404).json({ error: 'Collection not found' });
+  if (doc.data().userId !== user.uid) return res.status(403).json({ error: 'Unauthorized' });
+
+  const members = await db.collection('endpoints')
+    .where('userId', '==', user.uid).where('collectionId', '==', req.params.id).get();
+  const batch = db.batch();
+  members.docs.forEach((d) => batch.update(d.ref, { collectionId: '' }));
+  batch.delete(ref);
+  await batch.commit();
+  res.json({ success: true });
+}));
+
+// Public, unauthenticated read of a shared collection by its shareId.
+app.get('/share/:shareId', ah(async (req, res) => {
+  const snap = await db.collection('collections')
+    .where('shareId', '==', req.params.shareId).limit(1).get();
+  if (snap.empty) return res.status(404).json({ error: 'Collection not found' });
+  const collection = snap.docs[0].data();
+  if (!collection.isPublic) return res.status(403).json({ error: 'This collection is not shared' });
+
+  const eps = await db.collection('endpoints').where('collectionId', '==', collection.id).get();
+  // Strip secrets — a public viewer must not see auth tokens or the owner id.
+  const endpoints = eps.docs.map((d) => {
+    const { authToken, userId, ...safe } = d.data();
+    return safe;
+  });
+  res.json({ collection: { name: collection.name, shareId: collection.shareId }, endpoints });
 }));
 
 // --- Mock API handler: any other path replays the configured response. ---

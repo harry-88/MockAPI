@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { createEndpoint } from '../../utils/api';
+import { createEndpoint, getCollections, Collection } from '../../utils/api';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -16,20 +16,28 @@ type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export function CreateEndpoint() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { accessToken } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [collections, setCollections] = useState<Collection[]>([]);
 
   const [formData, setFormData] = useState({
     name: '',
     method: 'GET' as HttpMethod,
-    path: '',
+    path: searchParams.get('path') || '', // prefilled when adding into a folder
     description: '',
     responseData: '{\n  "message": "Success",\n  "data": {}\n}',
     statusCode: 200,
     delay: 0,
     requireAuth: false,
     authToken: '',
+    collectionId: searchParams.get('collectionId') || '', // prefilled from the tree
   });
+
+  useEffect(() => {
+    if (!accessToken) return;
+    getCollections(accessToken).then(setCollections).catch(() => {});
+  }, [accessToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +75,7 @@ export function CreateEndpoint() {
         delay: formData.delay,
         requireAuth: formData.requireAuth,
         authToken: formData.requireAuth ? formData.authToken : undefined,
+        collectionId: formData.collectionId,
       });
 
       toast.success('Endpoint created successfully');
@@ -127,6 +136,26 @@ export function CreateEndpoint() {
                 onChange={(e) => updateField('description', e.target.value)}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="collection">Collection</Label>
+              <Select
+                value={formData.collectionId || 'none'}
+                onValueChange={(value) => updateField('collectionId', value === 'none' ? '' : value)}
+              >
+                <SelectTrigger id="collection">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No collection</SelectItem>
+                  {collections.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Group this endpoint into a project you can share. Create collections on the Endpoints page.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -172,13 +201,14 @@ export function CreateEndpoint() {
               <Label htmlFor="path">API Path *</Label>
               <Input
                 id="path"
-                placeholder="/users"
+                placeholder="/finance/salary"
                 value={formData.path}
                 onChange={(e) => updateField('path', e.target.value)}
                 required
               />
               <p className="text-sm text-muted-foreground">
-                Path must start with /
+                Must start with /. Nest into folders with /, e.g. <code>/finance/salary</code> puts
+                this endpoint in a "finance" folder.
               </p>
             </div>
           </CardContent>

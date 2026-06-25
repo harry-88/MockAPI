@@ -1,9 +1,8 @@
 import { Link, Outlet, useLocation, Navigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Boxes, 
-  Plus, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Boxes,
+  Settings,
   BarChart3,
   User
 } from 'lucide-react';
@@ -17,7 +16,6 @@ export function DashboardLayout() {
   const navigation = [
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard, exact: true },
     { name: 'Endpoints', href: '/dashboard/endpoints', icon: Boxes },
-    { name: 'Create Endpoint', href: '/dashboard/create', icon: Plus },
     { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];

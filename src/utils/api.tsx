@@ -15,9 +15,19 @@ export interface Endpoint {
   delay?: number; // Response delay in milliseconds
   requireAuth?: boolean; // Whether authentication is required
   authToken?: string; // Expected auth token if requireAuth is true
+  collectionId?: string; // Empty string means uncategorized
   createdAt: string;
   updatedAt: string;
   callCount: number;
+}
+
+export interface Collection {
+  id: string;
+  userId: string;
+  name: string;
+  isPublic: boolean;
+  shareId: string;
+  createdAt: string;
 }
 
 export interface Analytics {
@@ -111,6 +121,46 @@ export async function getAnalytics(accessToken: string): Promise<Analytics> {
   return analytics;
 }
 
-export function getMockApiUrl(endpoint: Endpoint): string {
+export function getMockApiUrl(endpoint: Pick<Endpoint, 'path'>): string {
   return `${API_BASE}${endpoint.path}`;
+}
+
+// --- Collections ---
+
+export async function getCollections(accessToken: string): Promise<Collection[]> {
+  const { collections } = await fetchAPI('/collections', {}, accessToken);
+  return collections;
+}
+
+export async function createCollection(accessToken: string, name: string): Promise<Collection> {
+  const { collection } = await fetchAPI(
+    '/collections',
+    { method: 'POST', body: JSON.stringify({ name }) },
+    accessToken
+  );
+  return collection;
+}
+
+export async function updateCollection(
+  accessToken: string,
+  id: string,
+  patch: Partial<Pick<Collection, 'name' | 'isPublic'>>
+): Promise<Collection> {
+  const { collection } = await fetchAPI(
+    `/collections/${id}`,
+    { method: 'PUT', body: JSON.stringify(patch) },
+    accessToken
+  );
+  return collection;
+}
+
+export async function deleteCollection(accessToken: string, id: string): Promise<void> {
+  await fetchAPI(`/collections/${id}`, { method: 'DELETE' }, accessToken);
+}
+
+// Public — no auth. Returns the collection name and its endpoints (secrets stripped).
+export async function getSharedCollection(
+  shareId: string
+): Promise<{ collection: { name: string; shareId: string }; endpoints: Endpoint[] }> {
+  return fetchAPI(`/share/${shareId}`);
 }
