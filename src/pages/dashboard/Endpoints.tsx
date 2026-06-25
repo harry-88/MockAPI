@@ -269,6 +269,7 @@ export function Endpoints() {
       <section className="flex-1 overflow-y-auto">
         {createCtx ? (
           <CreatePane
+            key={`${createCtx.collectionId}|${createCtx.path}`}
             ctx={createCtx}
             collections={collections}
             accessToken={accessToken}
